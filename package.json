@@ -1,0 +1,25 @@
+{
+  "name": "broccoli-es6-module-transpiler",
+  "version": "0.0.1",
+  "description": "Broccoli plugin for Square's ES6 Module Transpiler",
+  "main": "index.js",
+  "author": "Martin Muñoz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmun/broccoli-es6-module-transpiler.git"
+  },
+  "keywords": [
+    "broccoli-plugin",
+    "javascript",
+    "es6",
+    "module",
+    "transpile",
+    "amd",
+    "commonjs"
+  ],
+  "dependencies": {
+    "broccoli-filter": "0.1.6",
+    "es6-module-transpiler": "~0.4.0"
+  }
+}
