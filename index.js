@@ -10,11 +10,22 @@ function TranspilerFilter(inputTree, options) {
   if (!(this instanceof TranspilerFilter)) {
     return new TranspilerFilter(inputTree, options);
   }
+
   options = options || {};
   this.inputTree = inputTree;
-  this.type = options.type || 'amd';
-  this.moduleName = options.moduleName;
-  this.transpilerOptions = options.options;
+  this.type = 'amd';
+
+  for (var key in options) {
+    if (options.hasOwnProperty(key)) {
+      this[key] = options[key]
+    }
+  }
+
+  if (this.moduleName === true) {
+    this.moduleName = function(filePath) {
+      return filePath.slice(0, -3);
+    };
+  }
 }
 
 TranspilerFilter.prototype.extensions = ['js'];
