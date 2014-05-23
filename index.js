@@ -53,7 +53,12 @@ TranspilerFilter.prototype.processString = function (fileContents, filePath) {
 
   var compiler = new Compiler(fileContents, name, options);
 
-  return compiler[transpilerMethods[this.type]]();
+  try {
+    return compiler[transpilerMethods[this.type]]();
+  } catch(e) {
+    e.file = filePath;
+    throw e;
+  }
 };
 
 var transpilerMethods = {
