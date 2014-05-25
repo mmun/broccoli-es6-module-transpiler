@@ -1,5 +1,9 @@
 # Broccoli's ES6 Module Transpiler
 
+[![Build Status](https://travis-ci.org/mmun/broccoli-es6-module-transpiler.svg?branch=tests)](https://travis-ci.org/mmun/broccoli-es6-module-transpiler)
+
+A Broccoli filter that transpiles ES6 modules to other module types.
+
 ## Usage
 
 Transpiling to AMD:

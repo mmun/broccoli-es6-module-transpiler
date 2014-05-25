@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/mmun/broccoli-es6-module-transpiler.git"
   },
+  "scripts": {
+    "test": "mocha tests/"
+  },
   "keywords": [
     "broccoli-plugin",
     "javascript",
@@ -21,5 +24,10 @@
   "dependencies": {
     "broccoli-filter": "0.1.6",
     "es6-module-transpiler": "~0.4.0"
+  },
+  "devDependencies": {
+    "broccoli": "~0.12.0",
+    "expect.js": "~0.3.1",
+    "mocha": "~1.19.0"
   }
 }
