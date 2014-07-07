@@ -63,6 +63,7 @@ CompileModules.prototype.write = function (readTree, destDir) {
             Array.isArray(filePaths) || (filePaths = [filePaths]);
 
             return filePaths.map(function (filePath) {
+                // Returns a file-stats hash of the file.
                 return helpers.hashTree(path.join(srcDir, filePath));
             }).join(',');
         }
@@ -170,6 +171,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         cacheEntry;
 
     modules.forEach(function (module) {
+        // Gets a file-stats hash of the module file.
         var hash = helpers.hashTree(module.path);
 
         // Adds an entry to the cache for the later use by the CacheResolver.
@@ -189,7 +191,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             return;
         }
 
-        // When outputting do a dir, add the output files to the cache entry and
+        // When outputting to a dir, add the output files to the cache entry and
         // copy the files to the cache dir.
 
         var relPath = path.relative(srcDir, module.path);
@@ -205,7 +207,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     }, this);
 
     if (outputIsFile) {
-        // Create a chace entry for the entire bundle output file and copy it to
+        // Create a cache entry for the entire bundle output file and copy it to
         // the cache dir.
         cacheEntry = cache[outputHash.join(',')] = {
             // TODO: Add source map to `outputFiles`.
@@ -267,6 +269,8 @@ CacheResolver.prototype.resolveModule = function (importedPath, fromModule, cont
         return cachedModule;
     }
 
+    // Gets a file-stats hash of the module file, then checks if there's a cache
+    // entry with that hash.
     var cacheEntry = this.cache[helpers.hashTree(resolvedPath)],
         module;
 
