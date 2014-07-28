@@ -12,3 +12,5 @@ Object.seal(Object.defineProperties(exports, {
 
 var foo$bar$$ = require("./foo/bar");
 var baz = foo$bar$$.default;
+
+//# sourceMappingURL=foo.js.map

@@ -11,3 +11,5 @@ Object.seal(Object.defineProperties(exports, {
 }));
 
 var foo$bar$$default = { testing: true };
+
+//# sourceMappingURL=bar.js.map

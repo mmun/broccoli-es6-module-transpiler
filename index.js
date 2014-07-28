@@ -203,10 +203,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
 
         cacheEntry.dir = cacheDir;
 
-        // TODO: Add source map to `outputFiles`.
         cacheEntry.outputFiles = [
-            relPath /*,
-            relPath + '.map'*/
+            relPath,
+            relPath + '.map'
         ];
 
         this.copyFromCache(cacheEntry, outputPath);
@@ -221,10 +220,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             hash: outputHash.join(','),
             dir : cacheDir,
 
-            // TODO: Add source map to `outputFiles`.
             outputFiles: [
-                outputFile /*,
-                outputFile + '.map'*/
+                outputFile,
+                outputFile + '.map'
             ]
         };
 
