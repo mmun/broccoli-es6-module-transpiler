@@ -1,12 +1,14 @@
 'use strict';
 
-var path      = require('path'),
-    util      = require('util'),
-    mkdirp    = require('mkdirp'),
-    quickTemp = require('quick-temp'),
-    walkSync  = require('walk-sync'),
-    helpers   = require('broccoli-kitchen-sink-helpers'),
-    Writer    = require('broccoli-writer');
+var fs                = require('fs'),
+    path              = require('path'),
+    util              = require('util'),
+    mkdirp            = require('mkdirp'),
+    quickTemp         = require('quick-temp'),
+    walkSync          = require('walk-sync'),
+    helpers           = require('broccoli-kitchen-sink-helpers'),
+    symlinkOrCopySync = require('symlink-or-copy').sync,
+    Writer            = require('broccoli-writer');
 
 var transpiler   = require('es6-module-transpiler'),
     Container    = transpiler.Container,
@@ -63,8 +65,7 @@ CompileModules.prototype.write = function (readTree, destDir) {
             Array.isArray(filePaths) || (filePaths = [filePaths]);
 
             return filePaths.map(function (filePath) {
-                // Returns a file-stats hash of the file.
-                return helpers.hashTree(path.join(srcDir, filePath));
+                return hashFile(path.join(srcDir, filePath));
             }).join(',');
         }
 
@@ -82,13 +83,12 @@ CompileModules.prototype.write = function (readTree, destDir) {
                 return;
             }
 
-            // Copy over non-JavaScript files to the `destDir`.
             var srcPath  = path.join(srcDir, relPath),
                 destPath = path.join(destDir, relPath);
 
-            // TODO: Symlink these using the new helper!
+            // Symlink/copy over non-JavaScript files to the `destDir`.
             mkdirp.sync(path.dirname(destPath));
-            helpers.copyPreserveSync(srcPath, destPath);
+            symlinkOrCopySync(srcPath, destPath);
         });
 
         var modulesToCompile = [],
@@ -101,14 +101,14 @@ CompileModules.prototype.write = function (readTree, destDir) {
         // When outputting to a single file, all the input files must must be
         // unchanged in order to use the cached compiled file.
         //
-        // When outputting to a dir, we copy over the cached compiled file for
-        // any modules that are unchanged. Any modified modules are added to the
-        // `modulesToCompile` collection.
+        // When outputting to a dir, we symlink/copy over the cached compiled
+        // file for any modules that are unchanged. Any modified modules are
+        // added to the `modulesToCompile` collection.
         if (path.extname(outputPath) === '.js') {
-            // Must hash _all_ modules when outputting to a single file.
-            cacheEntry = cache[hash(modules)];
+            cacheEntry = cache[path.basename(outputPath)];
 
-            if (cacheEntry) {
+            // Must hash _all_ modules when outputting to a single file.
+            if (cacheEntry && cacheEntry.hash === hash(modules)) {
                 this.copyFromCache(cacheEntry, path.dirname(outputPath));
             } else {
                 // With a cache-miss, we need to re-generate the bundle output
@@ -121,9 +121,9 @@ CompileModules.prototype.write = function (readTree, destDir) {
             // Iterate over all the modules and copy compiled files from the
             // cache for the ones that are unchanged.
             modules.forEach(function (module) {
-                cacheEntry = cache[hash(module)];
+                cacheEntry = cache[module];
 
-                if (cacheEntry) {
+                if (cacheEntry && cacheEntry.hash === hash(module)) {
                     this.copyFromCache(cacheEntry, outputPath);
                 } else {
                     modulesToCompile.push(module);
@@ -139,8 +139,8 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     // Noop when no modules to compile.
     if (modulePaths.length < 1) { return; }
 
-    var cache    = this._cache,
-        cacheDir = this.getCacheDir();
+    var cache        = this._cache,
+        outputIsFile = path.extname(outputPath) === '.js';
 
     // The container will first use the CacheResolver so that any unchanged
     // modules that need to be visited by the transpiler don't have to be
@@ -161,23 +161,30 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         return container.getModule(modulePath);
     });
 
-    // Outputs the compiled modules to disk.
-    // TODO: We might need to output to the cache first when switching to
-    // symlinks.
-    container.write(outputPath);
+    // Create a new cache sub-dir for this compile run.
+    var cacheDir = path.join(this.getCacheDir(), String(this._cacheIndex++));
 
-    var outputIsFile = path.extname(outputPath) === '.js',
-        outputHash   = [],
-        cacheEntry;
+    // Determine target path to compile modules to.
+    var target = outputIsFile ?
+            path.join(cacheDir, path.basename(outputPath)) : cacheDir;
+
+    // Outputs the compiled modules to the cache.
+    mkdirp(target);
+    container.write(target);
+
+    var outputHash = [],
+        cacheEntry, outputFile;
 
     modules.forEach(function (module) {
-        // Gets a file-stats hash of the module file.
-        var hash = helpers.hashTree(module.path);
+        var hash    = hashFile(module.path),
+            relPath = path.relative(srcDir, module.path);
 
         // Adds an entry to the cache for the later use by the CacheResolver.
         // This holds the parsed and walked AST, so re-builds of unchanged
         // modules don't need to be re-read and re-parsed.
-        var cacheEntry = cache[hash] = {
+        var cacheEntry = cache[relPath] = {
+            hash: hash,
+
             ast    : module.ast,
             imports: module.imports,
             exports: module.exports,
@@ -191,10 +198,10 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             return;
         }
 
-        // When outputting to a dir, add the output files to the cache entry and
-        // copy the files to the cache dir.
+        // When outputting to a dir, add the compiled files to the cache entry
+        // and copy the files from the cache dir to the `outputPath`.
 
-        var relPath = path.relative(srcDir, module.path);
+        cacheEntry.dir = cacheDir;
 
         // TODO: Add source map to `outputFiles`.
         cacheEntry.outputFiles = [
@@ -202,51 +209,38 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             relPath + '.map'*/
         ];
 
-        // TODO: Might need different approach when using symlinks.
-        this.cacheFiles(cacheEntry, outputPath, cacheDir);
+        this.copyFromCache(cacheEntry, outputPath);
     }, this);
 
     if (outputIsFile) {
-        // Create a cache entry for the entire bundle output file and copy it to
-        // the cache dir.
-        cacheEntry = cache[outputHash.join(',')] = {
+        outputFile = path.basename(outputPath);
+
+        // Create a cache entry for the entire bundle output file and copy it
+        // from the cache to the `outputPath`.
+        cacheEntry = cache[outputFile] = {
+            hash: outputHash.join(','),
+            dir : cacheDir,
+
             // TODO: Add source map to `outputFiles`.
             outputFiles: [
-                path.basename(outputPath) /*,
-                path.basename(outputPath) + '.map'*/
+                outputFile /*,
+                outputFile + '.map'*/
             ]
         };
 
-        // TODO: Might need different approach when using symlinks.
-        this.cacheFiles(cacheEntry, path.dirname(outputPath), cacheDir);
+        this.copyFromCache(cacheEntry, path.dirname(outputPath));
     }
 };
 
-CompileModules.prototype.cacheFiles = function (cacheEntry, outputDir, cacheDir) {
-    cacheEntry.cacheFiles = [];
+CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
+    var cacheDir = cacheEntry.dir;
 
     cacheEntry.outputFiles.forEach(function (outputFile) {
-        var cacheFile = (this._cacheIndex ++) + '';
-        cacheEntry.cacheFiles.push(cacheFile);
-
-        helpers.copyPreserveSync(
-            path.join(outputDir, outputFile),
-            path.join(cacheDir, cacheFile)
-        );
-    }, this);
-};
-
-CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
-    var cacheDir = this.getCacheDir();
-
-    cacheEntry.outputFiles.forEach(function (outputFile, i) {
-        var cacheFile = cacheEntry.cacheFiles[i],
-            cachePath = path.join(cacheDir, cacheFile),
+        var cachePath = path.join(cacheDir, outputFile),
             destPath  = path.join(destDir, outputFile);
 
-        // TODO: Symlink these using the new helper!
         mkdirp.sync(path.dirname(destPath));
-        helpers.copyPreserveSync(cachePath, destPath);
+        symlinkOrCopySync(cachePath, destPath);
     });
 };
 
@@ -269,12 +263,12 @@ CacheResolver.prototype.resolveModule = function (importedPath, fromModule, cont
         return cachedModule;
     }
 
-    // Gets a file-stats hash of the module file, then checks if there's a cache
-    // entry with that hash.
-    var cacheEntry = this.cache[helpers.hashTree(resolvedPath)],
+    var cacheEntry = this.cache[path.relative(this.srcDir, resolvedPath)],
         module;
 
-    if (cacheEntry) {
+    // Gets a file-stats hash of the module file, then checks if there's a cache
+    // entry with that hash.
+    if (cacheEntry && cacheEntry.hash === hashFile(resolvedPath)) {
         module = new Module(resolvedPath, importedPath, container);
 
         // Update the `Module` instance with the cached AST and metadata that
@@ -306,3 +300,16 @@ CacheResolver.prototype.resolvePath = function (importedPath, fromModule) {
 
     return resolved;
 };
+
+// -- Utilities ----------------------------------------------------------------
+
+// Wrapper around `hashTree()` to dereference symbolic links within the Broccoli
+// build chain, so when new symlinks are created they won't be considered as
+// changed files, unless the real file they are pointing to hashes differently.
+function hashFile(path) {
+    if (fs.lstatSync(path).isSymbolicLink()) {
+        path = fs.realpathSync(path);
+    }
+
+    return helpers.hashTree(path);
+}
