@@ -1,14 +1,13 @@
 'use strict';
 
-var fs                = require('fs'),
-    path              = require('path'),
-    util              = require('util'),
-    mkdirp            = require('mkdirp'),
-    quickTemp         = require('quick-temp'),
-    walkSync          = require('walk-sync'),
-    helpers           = require('broccoli-kitchen-sink-helpers'),
-    symlinkOrCopySync = require('symlink-or-copy').sync,
-    Writer            = require('broccoli-writer');
+var fs        = require('fs'),
+    path      = require('path'),
+    util      = require('util'),
+    mkdirp    = require('mkdirp'),
+    quickTemp = require('quick-temp'),
+    walkSync  = require('walk-sync'),
+    helpers   = require('broccoli-kitchen-sink-helpers'),
+    Writer    = require('broccoli-writer');
 
 var transpiler   = require('es6-module-transpiler'),
     Container    = transpiler.Container,
@@ -86,9 +85,12 @@ CompileModules.prototype.write = function (readTree, destDir) {
             var srcPath  = path.join(srcDir, relPath),
                 destPath = path.join(destDir, relPath);
 
-            // Symlink/copy over non-JavaScript files to the `destDir`.
+            // Copy over non-JavaScript files to the `destDir`.
+            //
+            // TODO: switch to `symlinkOrCopySync()` after:
+            // https://github.com/broccolijs/broccoli/issues/179
             mkdirp.sync(path.dirname(destPath));
-            symlinkOrCopySync(srcPath, destPath);
+            helpers.copyPreserveSync(srcPath, destPath);
         });
 
         var modulesToCompile = [],
@@ -237,8 +239,10 @@ CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
         var cachePath = path.join(cacheDir, outputFile),
             destPath  = path.join(destDir, outputFile);
 
+        // TODO: switch to `symlinkOrCopySync()` after:
+        // https://github.com/broccolijs/broccoli/issues/179
         mkdirp.sync(path.dirname(destPath));
-        symlinkOrCopySync(cachePath, destPath);
+        helpers.copyPreserveSync(cachePath, destPath);
     });
 };
 
@@ -301,13 +305,18 @@ CacheResolver.prototype.resolvePath = function (importedPath, fromModule) {
 
 // -- Utilities ----------------------------------------------------------------
 
+var hashFile = helpers.hashTree;
+
+// TODO: Determine if this impl is needed after:
+// https://github.com/broccolijs/broccoli/issues/179
+//
 // Wrapper around `hashTree()` to dereference symbolic links within the Broccoli
 // build chain, so when new symlinks are created they won't be considered as
 // changed files, unless the real file they are pointing to hashes differently.
-function hashFile(path) {
-    if (fs.lstatSync(path).isSymbolicLink()) {
-        path = fs.realpathSync(path);
-    }
-
-    return helpers.hashTree(path);
-}
+// function hashFile(path) {
+//     if (fs.lstatSync(path).isSymbolicLink()) {
+//         path = fs.realpathSync(path);
+//     }
+//
+//     return helpers.hashTree(path);
+// }
