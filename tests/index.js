@@ -28,10 +28,10 @@ describe('broccoli-es6-module-transpiler', function() {
     }
   });
 
-  describe('transpiling named AMD', function() {
-    it('should name modules automatically when `moduleName: true`', function() {
-      var testName = 'named-amd-automatic';
-      var tree = transpile(getSourcePath(testName), { moduleName: true });
+  describe('transpiling commonjs', function() {
+    it('should transpile to CommonJS', function() {
+      var testName = 'commonjs';
+      var tree = transpile(getSourcePath(testName), { formatter: 'commonjs' });
 
       builder = new broccoli.Builder(tree);
       return builder.build().then(function(node) {
