@@ -2,66 +2,78 @@
 
 [![Build Status](https://travis-ci.org/mmun/broccoli-es6-module-transpiler.svg?branch=tests)](https://travis-ci.org/mmun/broccoli-es6-module-transpiler)
 
-A Broccoli filter that transpiles ES6 modules to other module types.
+A Broccoli plugin that transpiles ES6 modules to other module types using
+**Square's [es6-module-transpiler][transpiler]**.
 
 ## Usage
 
-Transpiling to AMD:
+### Transpiling to CommonJS
 
 ```javascript
-var transpileES6 = require('broccoli-es6-module-transpiler');
+var compileModules = require('broccoli-es6-module-transpiler');
 
-var transpiledLib = transpileES6(lib, {
-  moduleName: function(filePath) {
-    return filePath.replace(/.js$/, '');
-  }
+var transpiledLib = compileModules(lib, {
+  formatter: 'commonjs'
 });
 ```
 
-Transpiling to CommonJS:
+### Transpiling to Bundle Format
+
+The bundle format is perfect for packaging your app's modules into one file that
+can be loaded in the browser _without_ needing a module loader.
 
 ```javascript
-var transpileES6 = require('broccoli-es6-module-transpiler');
+var compileModules = require('broccoli-es6-module-transpiler');
 
-var transpiledLib = transpileES6(lib, {
-  type: 'cjs'
+var transpiledLib = compileModules(lib, {
+  formatter: 'bundle',
+  output   : 'app.js'
+});
+```
+
+**Note:** The `output` option has a specified value to tell the transpiler where
+to output the new JavaScript file that contains the bundled transpiled modules.
+An `output` value is required when using the Bundle Format.
+
+### Transpiling to AMD
+
+The latest version of Square's [transpiler][] is flexible and pluggable, and
+while it doesn't ship with AMD support built-in you can use the AMD formatter:
+[es6-module-transpiler-amd-formatter][amd-formatter].
+
+```javascript
+var compileModules = require('broccoli-es6-module-transpiler');
+var AMDFormatter = require('es6-module-transpiler-amd-formatter');
+
+var transpiledLib = compileModules(lib, {
+  formatter: new AMDFormatter()
 });
 ```
 
 ## Documentation
 
-### `transpileES6(inputTree, options)`
+### `compileModules(inputTree, [options])`
 
 ---
 
-`options.type` *{String}*
+`options.formatter` *{String | Object}*
 
-The type of module to transpile to.
+The formatter instance or built-in name to use to transpile the modules.
+Built-in formatters: `bundle`, `commonjs`.
 
-Possible values: `amd`, `cjs`, `yui` or `globals`.
-Default: `amd`.
-
----
-
-`options.moduleName` *{Function, String, `true`, null}*
-
-The module name that is passed to the transpiler for each file.
-
-  - If `moduleName` is `null` an anonymous module will be generated.
-  - If `moduleName` is a string it will be passed directly the transpiler for all files.
-  - If `moduleName` is a function it will be called with the path of the current file as its sole argument. The return value of the function will be passed to the transpiler. 
-  - If `moduleName` is `true` the filename will be used (after stripping the last three characters).
-
-Default: `null`.
+Default: `bundle`.
 
 ---
 
-`options.transpilerOptions` *{Function, Object, null}*
+`options.output` *{String}*
 
-The options that are passed to the transpiler for each file.
+The path where the transpiler should output the transpiled modules to. For
+formatters that output one file per module, this should be a directory, while
+formatters like the Bundle Format require a value for this option and it must be
+a file path.
 
- - If `transpilerOptions` is `null` no options will be passed.
- - If `transpilerOptions` is an object it will be passed directly the transpiler for all files.
- - If `transpilerOptions` is a function it will be called with the path of the current file as its sole argument. The return value of the function will be passed to the transpiler.
+Default: `"."`.
 
-Default: `null`.
+
+[transpiler]: https://github.com/square/es6-module-transpiler
+[amd-formatter]: https://github.com/caridy/es6-module-transpiler-amd-formatter
