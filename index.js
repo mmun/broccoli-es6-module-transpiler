@@ -178,8 +178,17 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         cacheEntry, outputFile;
 
     modules.forEach(function (module) {
-        var hash    = hashFile(module.path),
-            relPath = path.relative(srcDir, module.path);
+        var hash       = hashFile(module.path),
+            relPath    = path.relative(srcDir, module.path),
+            modImports = module.imports,
+            modExports = module.exports;
+
+        // If the `module` was built with cached metadata, we want to un-wrap
+        // its `imports` and `exports` before storing them in the `cacheEntry`.
+        if (module instanceof CachedModule) {
+            modImports = Object.getPrototypeOf(modImports);
+            modExports = Object.getPrototypeOf(modExports);
+        }
 
         // Adds an entry to the cache for the later use by the CacheResolver.
         // This holds the parsed and walked AST, so re-builds of unchanged
@@ -188,9 +197,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             hash: hash,
 
             ast    : module.ast,
-            imports: module.imports,
-            exports: module.exports,
-            scope  : module.scope
+            scope  : module.scope,
+            imports: modImports,
+            exports: modExports
         };
 
         // Accumulate hashes if the final output is a single bundle file, and
@@ -265,22 +274,12 @@ CacheResolver.prototype.resolveModule = function (importedPath, fromModule, cont
         return cachedModule;
     }
 
-    var cacheEntry = this.cache[path.relative(this.srcDir, resolvedPath)],
-        module;
+    var cacheEntry = this.cache[path.relative(this.srcDir, resolvedPath)];
 
     // Gets a file-stats hash of the module file, then checks if there's a cache
     // entry with that hash.
     if (cacheEntry && cacheEntry.hash === hashFile(resolvedPath)) {
-        module = new Module(resolvedPath, importedPath, container);
-
-        // Update the `Module` instance with the cached AST and metadata that
-        // the transpiler will need when it compiles.
-        module.ast     = cacheEntry.ast;
-        module.imports = cacheEntry.imports;
-        module.exports = cacheEntry.exports;
-        module.scope   = cacheEntry.scope;
-
-        return module;
+        return new CachedModule(resolvedPath, importedPath, container, cacheEntry);
     }
 
     return null;
@@ -302,6 +301,27 @@ CacheResolver.prototype.resolvePath = function (importedPath, fromModule) {
 
     return resolved;
 };
+
+// -- CachedModule -------------------------------------------------------------
+
+function CachedModule(resolvedPath, importedPath, container, cachedMeta) {
+    Module.call(this, resolvedPath, importedPath, container);
+
+    this.ast   = cachedMeta.ast;
+    this.scope = cachedMeta.scope;
+
+    // Shadow cached `module` with `this`.
+    this.imports = Object.create(cachedMeta.imports, {
+        module: {value: this}
+    });
+
+    // Shadow cached `module` with `this`.
+    this.exports = Object.create(cachedMeta.exports, {
+        module: {value: this}
+    });
+}
+
+util.inherits(CachedModule, Module);
 
 // -- Utilities ----------------------------------------------------------------
 
