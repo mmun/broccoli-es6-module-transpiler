@@ -5,6 +5,10 @@
 A Broccoli plugin that transpiles ES6 modules to other module types using
 **Square's [es6-module-transpiler][transpiler]**.
 
+**Note:** The `es6-module-transpiler` package underwent a major refactor _after_
+`v0.4.0`, the previous version of this package that works with the older
+transpiler is available on the [`transpiler-0.4` branch][prev-version].
+
 ## Usage
 
 ### Transpiling to CommonJS
@@ -75,5 +79,6 @@ a file path.
 Default: `"."`.
 
 
-[transpiler]: https://github.com/square/es6-module-transpiler
+[transpiler]: https://github.com/esnext/es6-module-transpiler
+[prev-version]: https://github.com/mmun/broccoli-es6-module-transpiler/tree/transpiler-0.4
 [amd-formatter]: https://github.com/caridy/es6-module-transpiler-amd-formatter
