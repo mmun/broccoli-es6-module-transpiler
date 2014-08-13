@@ -182,28 +182,16 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         cacheEntry, outputFile;
 
     modules.forEach(function (module) {
-        var hash       = hashFile(module.path),
-            relPath    = path.relative(srcDir, module.path),
-            modImports = module.imports,
-            modExports = module.exports;
-
-        // If the `module` was built with cached metadata, we want to un-wrap
-        // its `imports` and `exports` before storing them in the `cacheEntry`.
-        if (module instanceof CachedModule) {
-            modImports = Object.getPrototypeOf(modImports);
-            modExports = Object.getPrototypeOf(modExports);
-        }
+        var hash    = hashFile(module.path),
+            relPath = path.relative(srcDir, module.path),
+            src     = module.src;
 
         // Adds an entry to the cache for the later use by the CacheResolver.
         // This holds the parsed and walked AST, so re-builds of unchanged
         // modules don't need to be re-read and re-parsed.
         var cacheEntry = cache[relPath] = {
             hash: hash,
-
-            ast    : module.ast,
-            scope  : module.scope,
-            imports: modImports,
-            exports: modExports
+            src : src
         };
 
         // Accumulate hashes if the final output is a single bundle file, and
@@ -324,18 +312,9 @@ CacheResolver.prototype.resolvePath = function (importedPath, fromModule) {
 function CachedModule(resolvedPath, importedPath, container, cachedMeta) {
     Module.call(this, resolvedPath, importedPath, container);
 
-    this.ast   = cachedMeta.ast;
-    this.scope = cachedMeta.scope;
-
-    // Shadow cached `module` with `this`.
-    this.imports = Object.create(cachedMeta.imports, {
-        module: {value: this}
-    });
-
-    // Shadow cached `module` with `this`.
-    this.exports = Object.create(cachedMeta.exports, {
-        module: {value: this}
-    });
+    // Update the `Module` instance with the cached string srouce that so
+    // the transpiler doesn't have re-read the file from disk.
+    this.src = cachedMeta.src;
 }
 
 util.inherits(CachedModule, Module);
