@@ -19,7 +19,9 @@
     "broccoli-plugin",
     "javascript",
     "es6",
+    "modules",
     "module",
+    "compile",
     "transpile",
     "amd",
     "commonjs"
