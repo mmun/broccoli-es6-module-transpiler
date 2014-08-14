@@ -1,6 +1,6 @@
 {
   "name": "broccoli-es6-module-transpiler",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Broccoli plugin for Square's ES6 Module Transpiler",
   "main": "index.js",
   "author": "Martin Muñoz",
