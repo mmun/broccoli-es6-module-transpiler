@@ -69,6 +69,14 @@ Default: `bundle`.
 
 ---
 
+`options.resolvers` *{Array}*
+
+An array of resolver classes used to resolve modules to their source code.
+
+Default: `[ FileResolver ]`.
+
+---
+
 `options.output` *{String}*
 
 The path where the transpiler should output the transpiled modules to. For
