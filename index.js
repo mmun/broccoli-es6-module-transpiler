@@ -35,10 +35,17 @@ function CompileModules(inputTree, options) {
         formatter = transpiler.formatters[formatter];
     }
 
-    this.inputTree   = inputTree;
-    this.formatter   = formatter;
-    this.output      = options.output || '.';
-    this.description = options.description;
+    var resolverClasses = options.resolvers;
+
+    if (!resolverClasses) {
+        resolverClasses = [ FileResolver ];
+    }
+
+    this.inputTree       = inputTree;
+    this.resolverClasses = resolverClasses;
+    this.formatter       = formatter;
+    this.output          = options.output || '.';
+    this.description     = options.description;
 
     this._cache      = {};
     this._cacheIndex = 0;
@@ -152,10 +159,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     // need to vist it when re-processing "foo".
     var container = new Container({
         formatter: this.formatter,
-        resolvers: [
-            new CacheResolver(cache, srcDir),
-            new FileResolver([srcDir])
-        ]
+        resolvers: this.getResolvers(cache, srcDir)
     });
 
     // Returns transpiler `Module` instances.
@@ -253,6 +257,19 @@ CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
         mkdirp.sync(path.dirname(destPath));
         helpers.copyPreserveSync(cachePath, destPath);
     });
+};
+
+CompileModules.prototype.getResolvers = function (cache, srcDir) {
+    var includePaths = [ srcDir ],
+        resolvers = [];
+
+    resolvers.push(new CacheResolver(cache, srcDir));
+
+    this.resolverClasses.forEach(function (resolverClass) {
+        resolvers.push(new resolverClass(includePaths));
+    });
+
+    return resolvers;
 };
 
 // -- CacheResolver ------------------------------------------------------------
