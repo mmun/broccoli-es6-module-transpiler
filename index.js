@@ -175,7 +175,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
             path.join(cacheDir, path.basename(outputPath)) : cacheDir;
 
     // Outputs the compiled modules to the cache.
-    mkdirp.sync(target);
+    mkdirp.sync(path.dirname(target));
     container.write(target);
 
     var outputHash = [],
