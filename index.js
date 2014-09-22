@@ -76,18 +76,19 @@ CompileModules.prototype.write = function (readTree, destDir) {
         }
 
         walkSync(srcDir).forEach(function (relPath) {
-            // Keep track of all the JavaScript modules.
-            if (path.extname(relPath) === '.js') {
-                modules.push(relPath);
-                return;
-            }
-
             // Skip doing anything with dir entries. When outputting a bundle
             // format some dirs may go away. For non-JavaScript files, their
             // containing dir will be created before they are copied over.
             if (relPath.charAt(relPath.length - 1) === '/') {
                 return;
             }
+
+            // Keep track of all the JavaScript modules.
+            if (path.extname(relPath) === '.js') {
+                modules.push(relPath);
+                return;
+            }
+
 
             var srcPath  = path.join(srcDir, relPath),
                 destPath = path.join(destDir, relPath);
