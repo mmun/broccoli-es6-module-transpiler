@@ -84,6 +84,8 @@ CompileModules.prototype.write = function (readTree, destDir) {
             }
 
             // Keep track of all the JavaScript modules.
+            // path.extname does not take into account the trailing '/' when
+            // checking for the extension
             if (path.extname(relPath) === '.js') {
                 modules.push(relPath);
                 return;
