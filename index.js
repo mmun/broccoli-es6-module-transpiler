@@ -1,13 +1,14 @@
 'use strict';
 
-var fs        = require('fs'),
-    path      = require('path'),
-    util      = require('util'),
-    mkdirp    = require('mkdirp'),
-    quickTemp = require('quick-temp'),
-    walkSync  = require('walk-sync'),
-    helpers   = require('broccoli-kitchen-sink-helpers'),
-    Writer    = require('broccoli-writer');
+var fs            = require('fs'),
+    path          = require('path'),
+    util          = require('util'),
+    mkdirp        = require('mkdirp'),
+    quickTemp     = require('quick-temp'),
+    symlinkOrCopy = require('symlink-or-copy'),
+    walkSync      = require('walk-sync'),
+    helpers       = require('broccoli-kitchen-sink-helpers'),
+    Writer        = require('broccoli-writer');
 
 var transpiler   = require('es6-module-transpiler'),
     Container    = transpiler.Container,
@@ -15,6 +16,11 @@ var transpiler   = require('es6-module-transpiler'),
     Module       = require('es6-module-transpiler/lib/module');
 
 module.exports = CompileModules;
+
+// -----------------------------------------------------------------------------
+
+var hashFile    = helpers.hashTree;
+var hashStrings = helpers.hashStrings;
 
 // -- CompileModules -----------------------------------------------------------
 
@@ -68,11 +74,13 @@ CompileModules.prototype.write = function (readTree, destDir) {
             modules    = [];
 
         function hash(filePaths) {
-            Array.isArray(filePaths) || (filePaths = [filePaths]);
+            if (Array.isArray(filePaths)) {
+                return hashStrings(filePaths.map(function (filePath) {
+                    return hashFile(path.join(srcDir, filePath));
+                }));
+            }
 
-            return filePaths.map(function (filePath) {
-                return hashFile(path.join(srcDir, filePath));
-            }).join(',');
+            return hashFile(path.join(srcDir, filePaths));
         }
 
         walkSync(srcDir).forEach(function (relPath) {
@@ -85,22 +93,18 @@ CompileModules.prototype.write = function (readTree, destDir) {
 
             // Keep track of all the JavaScript modules.
             // path.extname does not take into account the trailing '/' when
-            // checking for the extension
+            // checking for the file's extension.
             if (path.extname(relPath) === '.js') {
                 modules.push(relPath);
                 return;
             }
 
-
             var srcPath  = path.join(srcDir, relPath),
                 destPath = path.join(destDir, relPath);
 
             // Copy over non-JavaScript files to the `destDir`.
-            //
-            // TODO: switch to `symlinkOrCopySync()` after:
-            // https://github.com/broccolijs/broccoli/issues/179
             mkdirp.sync(path.dirname(destPath));
-            helpers.copyPreserveSync(srcPath, destPath);
+            symlinkOrCopy.sync(srcPath, destPath);
         });
 
         var modulesToCompile = [],
@@ -125,8 +129,8 @@ CompileModules.prototype.write = function (readTree, destDir) {
             } else {
                 // With a cache-miss, we need to re-generate the bundle output
                 // file, so we have to visit all the modules. The CacheResolver
-                // will make sure we don't have to read-and-parse the modules
-                // that are unchanged.
+                // will make sure we don't have to re-read the modules that are
+                // unchanged.
                 modulesToCompile = modules;
             }
         } else {
@@ -181,7 +185,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     mkdirp.sync(outputIsFile ? path.dirname(target) : target);
     container.write(target);
 
-    var outputHash = [],
+    var outputHashes = [],
         cacheEntry, outputFile;
 
     modules.forEach(function (module) {
@@ -200,7 +204,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         // Accumulate hashes if the final output is a single bundle file, and
         // return early.
         if (outputIsFile) {
-            outputHash.push(hash);
+            outputHashes.push(hash);
             return;
         }
 
@@ -221,9 +225,10 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         outputFile = path.basename(outputPath);
 
         // Create a cache entry for the entire bundle output file and copy it
-        // from the cache to the `outputPath`.
+        // from the cache to the `outputPath`. Compute the hash as a hash of
+        // hashes.
         cacheEntry = cache[outputFile] = {
-            hash: outputHash.join(','),
+            hash: hashStrings(outputHashes),
             dir : cacheDir,
 
             outputFiles: [
@@ -243,10 +248,8 @@ CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
         var cachePath = path.join(cacheDir, outputFile),
             destPath  = path.join(destDir, outputFile);
 
-        // TODO: switch to `symlinkOrCopySync()` after:
-        // https://github.com/broccolijs/broccoli/issues/179
         mkdirp.sync(path.dirname(destPath));
-        helpers.copyPreserveSync(cachePath, destPath);
+        symlinkOrCopy.sync(cachePath, destPath);
     });
 };
 
@@ -321,21 +324,3 @@ function CachedModule(resolvedPath, importedPath, container, cachedMeta) {
 }
 
 util.inherits(CachedModule, Module);
-
-// -- Utilities ----------------------------------------------------------------
-
-var hashFile = helpers.hashTree;
-
-// TODO: Determine if this impl is needed after:
-// https://github.com/broccolijs/broccoli/issues/179
-//
-// Wrapper around `hashTree()` to dereference symbolic links within the Broccoli
-// build chain, so when new symlinks are created they won't be considered as
-// changed files, unless the real file they are pointing to hashes differently.
-// function hashFile(path) {
-//     if (fs.lstatSync(path).isSymbolicLink()) {
-//         path = fs.realpathSync(path);
-//     }
-//
-//     return helpers.hashTree(path);
-// }
