@@ -40,4 +40,17 @@ describe('broccoli-es6-module-transpiler', function() {
       });
     });
   });
+
+  describe('transpiling directory ending with .js', function() {
+    it('should transpile to CommonJS', function() {
+      var testName = 'dir_with_extension';
+      var tree = transpile(getSourcePath(testName), { formatter: 'commonjs' });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(node) {
+        expect(readTranspiled(node.directory, 'index.js')).to.be(readExpected(testName, 'index.js'));
+        expect(readTranspiled(node.directory, 'accounting.js/accounting.js')).to.be(readExpected(testName, 'accounting.js/accounting.js'));
+      });
+    });
+  });
 });
