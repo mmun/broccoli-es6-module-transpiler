@@ -1,0 +1,1 @@
+{"version":3,"file":"bar.js","sources":["bar.js"],"names":[],"mappings":";qBAAe,EAAE,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,EAAE,CAAC,CAAC,CAAC,EAAE","sourcesContent":["export default { testing: true };\n"]}
