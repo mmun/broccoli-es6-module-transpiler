@@ -8,7 +8,9 @@ var fs            = require('fs'),
     symlinkOrCopy = require('symlink-or-copy'),
     walkSync      = require('walk-sync'),
     helpers       = require('broccoli-kitchen-sink-helpers'),
-    Writer        = require('broccoli-writer');
+    Writer        = require('broccoli-writer'),
+    mergeTrees    = require('broccoli-merge-trees'),
+    fileCreator   = require('broccoli-file-creator');
 
 var transpiler   = require('es6-module-transpiler'),
     Container    = transpiler.Container,
@@ -47,6 +49,12 @@ function CompileModules(inputTree, options) {
         resolverClasses = [ FileResolver ];
     }
 
+    if (options.shims && options.shims.length > 0){
+        var shimsTrees = options.shims.map(function(shimName){
+            return fileCreator(shimName.toLowerCase()+".js", "export default "+shimName+";");
+        });
+        inputTree = mergeTrees([inputTree].concat(shimsTrees));
+    }
     this.inputTree       = inputTree;
     this.resolverClasses = resolverClasses;
     this.formatter       = formatter;

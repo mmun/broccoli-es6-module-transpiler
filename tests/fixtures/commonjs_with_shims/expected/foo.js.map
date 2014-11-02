@@ -1,0 +1,1 @@
+{"version":3,"file":"foo.js","sources":["foo.js"],"names":[],"mappings":";;AAEO,CAAC,CAAC,EAAE,CAAC,CAAC,EAAE,mBAAK","sourcesContent":["import bar from \"./foo/bar\";\n\nexport var baz = bar;\n"]}
