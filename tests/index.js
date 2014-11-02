@@ -39,6 +39,18 @@ describe('broccoli-es6-module-transpiler', function() {
         expect(readTranspiled(node.directory, 'foo/bar.js')).to.be(readExpected(testName, 'foo/bar.js'));
       });
     });
+
+    it('should transpile to CommonJS with shims', function() {
+      var testName = 'commonjs_with_shims';
+      var tree = transpile(getSourcePath(testName), { formatter: 'commonjs', shims: ['Ember'] });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(node) {
+        debugger;
+        expect(readTranspiled(node.directory, 'foo.js')).to.be(readExpected(testName, 'foo.js'));
+        expect(readTranspiled(node.directory, 'foo/bar.js')).to.be(readExpected(testName, 'foo/bar.js'));
+      });
+    });
   });
 
   describe('transpiling directory ending with .js', function() {
