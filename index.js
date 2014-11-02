@@ -10,7 +10,7 @@ var fs            = require('fs'),
     helpers       = require('broccoli-kitchen-sink-helpers'),
     Writer        = require('broccoli-writer'),
     mergeTrees    = require('broccoli-merge-trees'),
-    uuidGenerator = require('node-uuid');
+    fileCreator   = require('broccoli-file-creator');
 
 var transpiler   = require('es6-module-transpiler'),
     Container    = transpiler.Container,
@@ -50,14 +50,10 @@ function CompileModules(inputTree, options) {
     }
 
     if (options.shims && options.shims.length > 0){
-        var uuid = uuidGenerator.v1();
-        var shimsFolder = 'tmp/shims-' + uuid;
-        fs.mkdir(shimsFolder);
-        options.shims.forEach(function(shimName){
-            var fileName = shimName.toLowerCase();
-            fs.writeFileSync(shimsFolder+"/"+fileName+".js", "export default "+shimName+";");
+        var shimsTrees = options.shims.map(function(shimName){
+            return fileCreator(shimName.toLowerCase()+".js", "export default "+shimName+";");
         });
-        inputTree = mergeTrees([inputTree, 'tmp/shims'])
+        inputTree = mergeTrees([inputTree].concat(shimsTrees));
     }
     this.inputTree       = inputTree;
     this.resolverClasses = resolverClasses;
