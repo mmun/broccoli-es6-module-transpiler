@@ -52,6 +52,8 @@ function CompileModules(inputTree, options) {
     this.formatter       = formatter;
     this.output          = options.output || '.';
     this.description     = options.description;
+    this.basePath        = options.basePath;
+    this.sourceRoot      = options.sourceRoot;
 
     this._cache      = {};
     this._cacheIndex = 0;
@@ -166,7 +168,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     // need to vist it when re-processing "foo".
     var container = new Container({
         formatter: this.formatter,
-        resolvers: this.getResolvers(cache, srcDir)
+        resolvers: this.getResolvers(cache, srcDir),
+        basePath: this.basePath || srcDir,
+        sourceRoot: this.sourceRoot
     });
 
     // Returns transpiler `Module` instances.
