@@ -1,19 +1,19 @@
 'use strict';
 
-var fs            = require('fs'),
-    path          = require('path'),
-    util          = require('util'),
-    mkdirp        = require('mkdirp'),
-    quickTemp     = require('quick-temp'),
-    symlinkOrCopy = require('symlink-or-copy'),
-    walkSync      = require('walk-sync'),
-    helpers       = require('broccoli-kitchen-sink-helpers'),
-    Writer        = require('broccoli-writer');
+var fs            = require('fs');
+var path          = require('path');
+var util          = require('util');
+var mkdirp        = require('mkdirp');
+var quickTemp     = require('quick-temp');
+var symlinkOrCopy = require('symlink-or-copy');
+var walkSync      = require('walk-sync');
+var helpers       = require('broccoli-kitchen-sink-helpers');
+var Writer        = require('broccoli-writer');
 
-var transpiler   = require('es6-module-transpiler'),
-    Container    = transpiler.Container,
-    FileResolver = transpiler.FileResolver,
-    Module       = require('es6-module-transpiler/lib/module');
+var transpiler   = require('es6-module-transpiler');
+var Container    = transpiler.Container;
+var FileResolver = transpiler.FileResolver;
+var Module       = require('es6-module-transpiler/lib/module');
 
 module.exports = CompileModules;
 
@@ -51,9 +51,9 @@ function CompileModules(inputTree, options) {
     this.resolverClasses = resolverClasses;
     this.formatter       = formatter;
     this.output          = options.output || '.';
-    this.description     = options.description;
     this.basePath        = options.basePath;
-    this.sourceRoot      = options.sourceRoot;
+    this.sourceRoot      = options.sourceRoot || '/';
+    this.description     = options.description;
 
     this._cache      = {};
     this._cacheIndex = 0;
@@ -167,9 +167,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     // If "foo" imports "bar", and "bar" is unchanged, the transpiler still will
     // need to vist it when re-processing "foo".
     var container = new Container({
-        formatter: this.formatter,
-        resolvers: this.getResolvers(cache, srcDir),
-        basePath: this.basePath || srcDir,
+        formatter : this.formatter,
+        resolvers : this.getResolvers(cache, srcDir),
+        basePath  : this.basePath || srcDir,
         sourceRoot: this.sourceRoot
     });
 
