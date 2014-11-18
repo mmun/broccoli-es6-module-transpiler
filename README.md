@@ -86,6 +86,22 @@ a file path.
 
 Default: `"."`.
 
+---
+
+`options.basePath` *{String}*
+
+The path used to resolve the transpiled modules' source paths against. The resolved path will then serve as the `sourceFileName` value for the module in the output file's source map.
+
+Default: `srcDir`.
+
+---
+
+`options.sourceRoot` *{String}*
+
+The path to use as the `sourceRoot` value in the output file's source map.
+
+Default: `"/"`.
+
 
 [transpiler]: https://github.com/esnext/es6-module-transpiler
 [prev-version]: https://github.com/mmun/broccoli-es6-module-transpiler/tree/transpiler-0.4

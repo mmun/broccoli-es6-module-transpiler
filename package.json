@@ -29,7 +29,7 @@
   "dependencies": {
     "broccoli-kitchen-sink-helpers": "^0.2.5",
     "broccoli-writer": "^0.1.1",
-    "es6-module-transpiler": "^0.9.0",
+    "es6-module-transpiler": "^0.9.5",
     "mkdirp": "^0.5.0",
     "quick-temp": "^0.1.2",
     "symlink-or-copy": "^1.0.0",
