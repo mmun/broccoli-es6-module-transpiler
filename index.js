@@ -53,8 +53,7 @@ function CompileModules(inputTree, options) {
     this.output          = options.output || '.';
     this.description     = options.description;
 
-    this._cache      = {};
-    this._cacheIndex = 0;
+    this._cache = {};
 }
 
 util.inherits(CompileModules, Writer);
@@ -155,8 +154,9 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     // Noop when no modules to compile.
     if (modulePaths.length < 1) { return; }
 
-    var cache        = this._cache,
-        outputIsFile = path.extname(outputPath) === '.js';
+    var cache        = this._cache;
+    var cacheDir     = this.getCacheDir();
+    var outputIsFile = path.extname(outputPath) === '.js';
 
     // The container will first use the CacheResolver so that any unchanged
     // modules that need to be visited by the transpiler don't have to be
@@ -173,9 +173,6 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
     var modules = modulePaths.map(function (modulePath) {
         return container.getModule(modulePath);
     });
-
-    // Create a new cache sub-dir for this compile run.
-    var cacheDir = path.join(this.getCacheDir(), String(this._cacheIndex++));
 
     // Determine target path to compile modules to.
     var target = outputIsFile ?
@@ -211,8 +208,6 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
         // When outputting to a dir, add the compiled files to the cache entry
         // and copy the files from the cache dir to the `outputPath`.
 
-        cacheEntry.dir = cacheDir;
-
         cacheEntry.outputFiles = [
             relPath,
             relPath + '.map'
@@ -242,7 +237,7 @@ CompileModules.prototype.compileAndCacheModules = function (modulePaths, srcDir,
 };
 
 CompileModules.prototype.copyFromCache = function (cacheEntry, destDir) {
-    var cacheDir = cacheEntry.dir;
+    var cacheDir = this.getCacheDir();
 
     cacheEntry.outputFiles.forEach(function (outputFile) {
         var cachePath = path.join(cacheDir, outputFile),
