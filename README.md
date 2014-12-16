@@ -102,6 +102,12 @@ The path to use as the `sourceRoot` value in the output file's source map.
 
 Default: `"/"`.
 
+---
+
+`options.description` *{String}*
+
+Used to add a description to the top of the compiled file.
+
 
 [transpiler]: https://github.com/esnext/es6-module-transpiler
 [prev-version]: https://github.com/mmun/broccoli-es6-module-transpiler/tree/transpiler-0.4
